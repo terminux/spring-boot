@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2021 the original author or authors.
+ * Copyright 2012-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.http.client.utils.URIBuilder;
 
 import org.springframework.boot.buildpack.platform.docker.configuration.DockerConfiguration;
+import org.springframework.boot.buildpack.platform.docker.configuration.DockerHost;
 import org.springframework.boot.buildpack.platform.docker.transport.HttpTransport;
 import org.springframework.boot.buildpack.platform.docker.transport.HttpTransport.Response;
 import org.springframework.boot.buildpack.platform.docker.type.ContainerConfig;
@@ -70,6 +71,8 @@ public class DockerApi {
 
 	private final VolumeApi volume;
 
+	private final DockerHost host;
+
 	/**
 	 * Create a new {@link DockerApi} instance.
 	 */
@@ -83,7 +86,16 @@ public class DockerApi {
 	 * @since 2.4.0
 	 */
 	public DockerApi(DockerConfiguration dockerConfiguration) {
-		this(HttpTransport.create((dockerConfiguration != null) ? dockerConfiguration.getHost() : null));
+		this((dockerConfiguration != null) ? dockerConfiguration.getHost() : null);
+	}
+
+	/**
+	 * Create a new {@link DockerApi} instance backed by a specific {@link DockerHost}
+	 * implementation.
+	 * @param host the host implementation
+	 */
+	DockerApi(DockerHost host) {
+		this(HttpTransport.create(host), host);
 	}
 
 	/**
@@ -92,11 +104,16 @@ public class DockerApi {
 	 * @param http the http implementation
 	 */
 	DockerApi(HttpTransport http) {
+		this(http, null);
+	}
+
+	private DockerApi(HttpTransport http, DockerHost host) {
 		this.http = http;
 		this.jsonStream = new JsonStream(SharedObjectMapper.get());
 		this.image = new ImageApi();
 		this.container = new ContainerApi();
 		this.volume = new VolumeApi();
+		this.host = host;
 	}
 
 	private HttpTransport http() {
@@ -143,6 +160,10 @@ public class DockerApi {
 
 	public VolumeApi volume() {
 		return this.volume;
+	}
+
+	public DockerHost host() {
+		return this.host;
 	}
 
 	/**

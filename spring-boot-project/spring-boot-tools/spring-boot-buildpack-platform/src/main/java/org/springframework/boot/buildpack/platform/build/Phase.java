@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2021 the original author or authors.
+ * Copyright 2012-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,8 @@ class Phase {
 
 	private final boolean verboseLogging;
 
+	private final String dockerHost;
+
 	private boolean daemonAccess = false;
 
 	private final List<String> args = new ArrayList<>();
@@ -54,8 +56,19 @@ class Phase {
 	 * @param verboseLogging if verbose logging is requested
 	 */
 	Phase(String name, boolean verboseLogging) {
+		this(name, verboseLogging, DOMAIN_SOCKET_PATH);
+	}
+
+	/**
+	 * Create a new {@link Phase} instance.
+	 * @param name the name of the phase
+	 * @param verboseLogging if verbose logging is requested
+	 * @param dockerHost url containing the host and port for the Docker daemon
+	 */
+	Phase(String name, boolean verboseLogging, String dockerHost) {
 		this.name = name;
 		this.verboseLogging = verboseLogging;
+		this.dockerHost = dockerHost;
 	}
 
 	/**
@@ -121,7 +134,8 @@ class Phase {
 	void apply(ContainerConfig.Update update) {
 		if (this.daemonAccess) {
 			update.withUser("root");
-			update.withBinding(Binding.from(DOMAIN_SOCKET_PATH, DOMAIN_SOCKET_PATH));
+			update.withBinding(
+					Binding.from((this.dockerHost != null) ? this.dockerHost : DOMAIN_SOCKET_PATH, DOMAIN_SOCKET_PATH));
 		}
 		update.withCommand("/cnb/lifecycle/" + this.name, StringUtils.toStringArray(this.args));
 		update.withLabel("author", "spring-boot");
